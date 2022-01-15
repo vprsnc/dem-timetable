@@ -12,11 +12,15 @@ import plotly.graph_objs as go
 from mailwizz_parser import scrape_from_mailwizz
 
 
+# Function for a week dropdown menu
 def select_week(week, data):
-    the_day = date.today()
+    # the_day = date.today()
+    # In normal case you would use the actual date, but since this is an expamle:
+    the_day = '2021-01-15'
     today = pd.to_datetime(the_day).week
-
-    df = pd.DataFrame(data)
+    # In normal case, the data should be scraped, but here we use csv
+    # df = pd.DataFrame(data)
+    df = data
     df["Planned"] = pd.to_datetime(df['Planned']).dt.floor('1H')
     df['Week'] = df['Planned'].dt.isocalendar().week
     df['WeekDay'] = df['Planned'].dt.day_name()
@@ -25,6 +29,7 @@ def select_week(week, data):
     return df
 
 
+# Function for a server selection dropdown menu
 def select_server(data, servername, week):
     df = pd.DataFrame(data)
     match servername:
@@ -45,6 +50,7 @@ def select_server(data, servername, week):
             return dff
 
 
+# Function for building a pivot table organising data by weekday and hour of the day
 def build_timetable(data):
     df = pd.DataFrame(data)
     timetable = df.pivot_table(
@@ -82,15 +88,18 @@ def build_timetable(data):
     return timetable
 
 
+# Pivot table summarizing data for the whole week seleted
 def create_week_report(data):
     df = pd.DataFrame(data)
     df = df[df['Campaign'].str.contains(r'\.') == False]
     df = df[df['Opens'] != 'N/A']
 
-    columns = ['Opens', 'Clicks', 'Bounces', 'Unsubs']
-    for column in columns:
-        df[f'{column}'] = df[f'{column}'].str.split(' ', expand=True)[
-                                                    0].astype(int)
+# Usually scraped data contains campaign numbers in
+# format like "200 (100%)"
+#    columns = ['Opens', 'Clicks', 'Bounces', 'Unsubs']
+#    for column in columns:
+#        df[f'{column}'] = df[f'{column}'].str.split(' ', expand=True)[
+#                                                    0].astype(int)
 
     df['Sent'] = df['Sent'].astype(int)
     df['Language'] = ''
@@ -111,6 +120,7 @@ def create_week_report(data):
     return weektable
 
 
+# Pivot table for the Heatmap represening load on a server by hour
 def create_server_load(data):
     df = pd.DataFrame(data)
     df = df[df['Opens'] != 'N/A']
@@ -128,6 +138,7 @@ def create_server_load(data):
     return servertable
 
 
+# Options and values for week selection dropdown
 available_weeks = {
     'Week 0': 0,
     'Week -1': 1,
@@ -137,6 +148,7 @@ available_weeks = {
     'Week 2': -2,
 }
 
+# Options for server selection
 available_servers = {
     "ALL": "ALL",
     "expotorussia": "expotorussia",
@@ -146,6 +158,7 @@ available_servers = {
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.VAPOR])
 server = app.server
 
+# Defining how the dashboard gonna look like
 app.layout = html.Div([
         html.Div(dcc.Store(id='weekstore')),
         html.H1("DEM REPORT", style={"text-align": "center"}),
@@ -214,15 +227,21 @@ app.layout = html.Div([
     )
 
 
+# Inital data collection, will be stored and available for other collbacks
 @app.callback(
     Output('weekstore', 'data'),
     [Input('weekselection', 'value'),
      Input('serverselection', 'value')]
     )
 def collect_timetable(week, servername):
-    scraped = scrape_from_mailwizz()
+    # Run the parser:
+    # scraped = scrape_from_mailwizz()
+    scraped = pd.read_csv('campaigns.csv', sep=';')
+    # Filter the data to apply for needed week and server:
     data = select_week(week=week, data=scraped)
     df = select_server(data, servername, week)
+    # Let the data be available for other callbacks, which are unavailable
+    # of readding Pandas DataFrame
     return df.to_dict('records')
 
 

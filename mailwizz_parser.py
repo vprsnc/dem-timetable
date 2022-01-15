@@ -32,7 +32,8 @@ def scrape_from_mailwizz():
     # Select the second (index one) form (the first form is a search query box)
     br.select_form(nr=1)
 
-    # User credentials
+    # User credentials. These are just for examble, but anyway it's better to store
+    # them in .env file and use OS library to get
     br.form['CustomerLogin[email]'] = 'g.toporkov@eunioncapital.com'
     br.form['CustomerLogin[password]'] = 'Br#N2CukscN@WEBh0g'
 
